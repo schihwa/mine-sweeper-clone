@@ -15,8 +15,8 @@ public class BombSquare extends GameSquare {
 
 	private static final int[][] directionOffsets = { // Direction offsets array
 			{ -1, -1 }, { -1, 0 }, { -1, 1 },
-			{ 0, -1 }, { 0, 1 },
-			{ 1, -1 }, { 1, 0 }, { 1, 1 }
+			{ 0, -1 }, 			   { 0, 1 },
+			{ 1, -1 }, { 1, 0 },   { 1, 1 }
 	};
 
 	/**
@@ -41,22 +41,58 @@ public class BombSquare extends GameSquare {
 			return;
 		}
 		isRevealed = true;
-		setImage(IMAGE_PATH + (hasBomb ? "bomb.png" : countSurroundingBombs() + ".png"));
-		if (!hasBomb && countSurroundingBombs() == 0) {
+		setImage(IMAGE_PATH + (hasBomb ? "bomb.png" : countConsecutiveBombs() + ".png"));
+		if (!hasBomb && countConsecutiveBombs() == 0) {
 			revealSurroundingSquares();
 		}
 	}
 
 	/**
-	 * Counts the number of bombs in the surrounding squares.
+	 * Counts all consecutive bombs in every direction from this square until a
+	 * non-bomb square is found.
 	 *
-	 * @return the number of surrounding bombs
+	 * @return the total count of consecutive bombs in all directions.
 	 */
-	private int countSurroundingBombs() {
+	private int countConsecutiveBombs() {
 		int bombCount = 0;
+
+		// Check each direction for consecutive bombs.
 		for (int[] offset : directionOffsets) {
-			bombCount += checkBombAt(xLocation + offset[0], yLocation + offset[1]) ? 1 : 0;
+			bombCount += countBombsInDirection(offset[0], offset[1]);
 		}
+
+		return bombCount;
+	}
+
+	/**
+	 * Counts the number of consecutive bombs in a given direction from this square.
+	 *
+	 * @param deltaX The x-direction offset.
+	 * @param deltaY The y-direction offset.
+	 * @return The count of consecutive bombs in the direction until a non-bomb
+	 *         square is found.
+	 */
+	private int countBombsInDirection(int deltaX, int deltaY) {
+		int bombCount = 0;
+		int checkX = xLocation + deltaX;
+		int checkY = yLocation + deltaY;
+
+		// Keep checking in this direction until we find a non-bomb or go out of bounds.
+		while (true) {
+			GameSquare square = board.getSquareAt(checkX, checkY);
+
+			// Stop checking if out of bounds or not a BombSquare, or if it doesn't have a
+			// bomb.
+			if (!(square instanceof BombSquare) || !((BombSquare) square).hasBomb) {
+				break;
+			}
+
+			// Increment the count and move to the next square in this direction.
+			bombCount++;
+			checkX += deltaX;
+			checkY += deltaY;
+		}
+
 		return bombCount;
 	}
 
@@ -71,18 +107,6 @@ public class BombSquare extends GameSquare {
 				neighbor.clicked();
 			}
 		}
-	}
-
-	/**
-	 * Checks if there is a bomb at the specified location.
-	 *
-	 * @param x the x-coordinate of the square to check
-	 * @param y the y-coordinate of the square to check
-	 * @return true if there is a bomb, false otherwise
-	 */
-	private boolean checkBombAt(int x, int y) {
-		GameSquare square = board.getSquareAt(x, y);
-		return square instanceof BombSquare && ((BombSquare) square).hasBomb;
 	}
 
 	public boolean hasBomb() {
