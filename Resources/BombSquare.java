@@ -3,46 +3,99 @@
  * It extends GameSquare and uses BombBehavior for bomb-related functionality.
  */
 public class BombSquare extends GameSquare {
-    private static final String IMAGE_PATH = "images/";
-    private static final int MINE_PROBABILITY = 10;
+	// Path to the directory containing image assets.
+	private static final String IMAGE_PATH = "images/";
 
-    private BombBehavior bombBehavior;
-    private boolean isRevealed = false;
+	// The probability (1 in MINE_PROBABILITY) that this square will contain a bomb.
+	private static final int MINE_PROBABILITY = 10;
 
-    private static final int[][] directionOffsets = {
-            { -1, -1 }, { -1, 0 }, { -1, 1 },
-            { 0, -1 }, { 0, 1 },
-            { 1, -1 }, { 1, 0 }, { 1, 1 }
-    };
+	// BombBehavior instance to handle bomb-related logic.
+	private BombBehavior bombBehavior;
 
-    public BombSquare(int x, int y, GameBoard board) {
-        super(x, y, IMAGE_PATH + "blank.png", board);
-        this.bombBehavior = new BombBehavior(MINE_PROBABILITY);
-    }
+	// Flag indicating whether this square has been revealed.
+	private boolean isRevealed = false;
 
-    @Override
-    public void clicked() {
-        if (isRevealed) {
-            return;
-        }
-        isRevealed = true;
-        // Determine the image based on whether the square has a bomb or not
-        if (bombBehavior.hasBomb()) {
-            setImage(IMAGE_PATH + "bomb.png");
-        } else {
-            int bombCount = bombBehavior.countConsecutiveBombs(board, xLocation, yLocation, directionOffsets);
-            setImage(IMAGE_PATH + bombCount + ".png");
-        }
-        // Further click logic can be implemented here
-    }
+	// Offsets used to check the surrounding squares in all eight directions.
+	private static final int[][] directionOffsets = {
+			{ -1, -1 }, { -1, 0 }, { -1, 1 },
+			{ 0, -1 }, { 0, 1 },
+			{ 1, -1 }, { 1, 0 }, { 1, 1 }
+	};
 
-    public boolean hasBomb() {
-        return bombBehavior.hasBomb();
-    }
+	/**
+	 * Constructor for BombSquare that initializes the square with an image and
+	 * determines if it has a bomb.
+	 *
+	 * @param x     the x-coordinate of the square on the game board.
+	 * @param y     the y-coordinate of the square on the game board.
+	 * @param board the game board on which this square is placed.
+	 */
+	public BombSquare(int x, int y, GameBoard board) {
+		// Call to the superclass constructor to set the square's position and default
+		// image.
+		super(x, y, IMAGE_PATH + "blank.png", board);
 
-    public boolean isRevealed() {
-        return isRevealed;
-    }
+		// Initialize the BombBehavior with the defined probability.
+		this.bombBehavior = new BombBehavior(MINE_PROBABILITY);
+	}
 
-    // Additional methods can be added here as needed
+	/**
+	 * Handles the click action on this square. It reveals the square and updates
+	 * its image based on whether it contains a bomb or the count of adjacent bombs.
+	 */
+	@Override
+	public void clicked() {
+		// Check if the square is already revealed; if so, do nothing.
+		if (isRevealed) {
+			return;
+		}
+
+		// Mark the square as revealed.
+		isRevealed = true;
+
+		// Update the square's image. If it has a bomb, show the bomb image.
+		if (bombBehavior.hasBomb()) {
+			setImage(IMAGE_PATH + "bomb.png");
+		} else {
+			// Count consecutive bombs and set the corresponding image.
+			int bombCount = bombBehavior.countConsecutiveBombs(board, xLocation, yLocation, directionOffsets);
+			setImage(IMAGE_PATH + bombCount + ".png");
+
+			// If there are no adjacent bombs, reveal surrounding squares.
+			if (bombCount == 0) {
+				revealSurroundingSquares();
+			}
+		}
+	}
+
+	private void revealSurroundingSquares() {
+		for (int[] offset : directionOffsets) {
+			GameSquare neighbor = board.getSquareAt(xLocation + offset[0], yLocation + offset[1]);
+
+			// Check if the neighboring square is a BombSquare and if it's not already
+			// revealed.
+			if (neighbor instanceof BombSquare && !((BombSquare) neighbor).isRevealed()) {
+				// Trigger the click action on the neighboring square.
+				neighbor.clicked();
+			}
+		}
+	}
+
+	/**
+	 * Returns whether this square contains a bomb.
+	 *
+	 * @return true if it contains a bomb, false otherwise.
+	 */
+	public boolean hasBomb() {
+		return bombBehavior.hasBomb();
+	}
+
+	/**
+	 * Returns whether this square has been revealed.
+	 *
+	 * @return true if it has been revealed, false otherwise.
+	 */
+	public boolean isRevealed() {
+		return isRevealed;
+	}
 }
